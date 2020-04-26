@@ -25,33 +25,37 @@
 
 static bool trans_flw(DisasContext *ctx, arg_flw *a)
 {
-    TCGv t0 = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1);
+    TCGv raw_addr = tcg_temp_new();
+    gen_get_gpr(raw_addr, a->rs1);
+    TCGv clean_addr = clean_data_tbi(ctx, raw_addr);
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    tcg_gen_addi_tl(t0, t0, a->imm);
+    tcg_gen_addi_tl(clean_addr, clean_addr, a->imm);
 
-    tcg_gen_qemu_ld_i64(cpu_fpr[a->rd], t0, ctx->mem_idx, MO_TEUL);
+    tcg_gen_qemu_ld_i64(cpu_fpr[a->rd], clean_addr, ctx->mem_idx, MO_TEUL);
     /* RISC-V requires NaN-boxing of narrower width floating point values */
     tcg_gen_ori_i64(cpu_fpr[a->rd], cpu_fpr[a->rd], 0xffffffff00000000ULL);
 
-    tcg_temp_free(t0);
+    tcg_temp_free(clean_addr);
+    tcg_temp_free(raw_addr);
     mark_fs_dirty(ctx);
     return true;
 }
 
 static bool trans_fsw(DisasContext *ctx, arg_fsw *a)
 {
-    TCGv t0 = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1);
+    TCGv raw_addr = tcg_temp_new();
+    gen_get_gpr(raw_addr, a->rs1);
+    TCGv clean_addr = clean_data_tbi(ctx, raw_addr);
 
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    tcg_gen_addi_tl(t0, t0, a->imm);
+    tcg_gen_addi_tl(clean_addr, clean_addr, a->imm);
 
-    tcg_gen_qemu_st_i64(cpu_fpr[a->rs2], t0, ctx->mem_idx, MO_TEUL);
+    tcg_gen_qemu_st_i64(cpu_fpr[a->rs2], clean_addr, ctx->mem_idx, MO_TEUL);
 
-    tcg_temp_free(t0);
+    tcg_temp_free(clean_addr);
+    tcg_temp_free(raw_addr);
     mark_fs_dirty(ctx);
     return true;
 }
