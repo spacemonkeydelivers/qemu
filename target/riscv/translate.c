@@ -54,6 +54,7 @@ typedef struct DisasContext {
        to any system register, which includes CSR_FRM, so we do not have
        to reset this known value.  */
     int frm;
+    uint8_t tbicontrol;
     bool ext_ifencei;
 } DisasContext;
 
@@ -101,6 +102,31 @@ static void generate_exception_mbadaddr(DisasContext *ctx, int excp)
     gen_helper_raise_exception(cpu_env, helper_tmp);
     tcg_temp_free_i32(helper_tmp);
     ctx->base.is_jmp = DISAS_NORETURN;
+}
+
+/* Generates address adjustment for TBI */
+static void gen_top_byte_ignore(DisasContext *s, TCGv_i64 dst,
+                                TCGv_i64 src, int tbi)
+{
+    if (tbi == 0) {
+        /* Load unmodified address */
+        tcg_gen_mov_i64(dst, src);
+    }
+    else {
+        /* Sign-extend from bit 55.  */
+        tcg_gen_sextract_i64(dst, src, 0, 56);
+
+        // FIXME: we should sign extend iff this is user-space address,
+        // that is if high part is 0.
+        // We should not support TBI for priviledged mode at the moment
+    }
+}
+
+static TCGv_i64 clean_data_tbi(DisasContext *s, TCGv_i64 addr)
+{
+    TCGv_i64 clean = tcg_temp_new();
+    gen_top_byte_ignore(s, clean, addr, s->tbicontrol);
+    return clean;
 }
 
 static void gen_exception_debug(void)
@@ -761,6 +787,7 @@ static void riscv_tr_init_disas_context(DisasContextBase *dcbase, CPUState *cs)
     ctx->priv_ver = env->priv_ver;
     ctx->misa = env->misa;
     ctx->frm = -1;  /* unknown rounding mode */
+    ctx->tbicontrol = env->tbicontrol;
     ctx->ext_ifencei = cpu->cfg.ext_ifencei;
 }
 
