@@ -26,13 +26,16 @@ static inline bool gen_lr(DisasContext *ctx, arg_atomic *a, TCGMemOp mop)
     if (a->rl) {
         tcg_gen_mb(TCG_MO_ALL | TCG_BAR_STRL);
     }
-    tcg_gen_qemu_ld_tl(load_val, src1, ctx->mem_idx, mop);
+    TCGv clean_addr = clean_data_tbi(ctx, src1);
+    tcg_gen_qemu_ld_tl(load_val, clean_addr, ctx->mem_idx, mop);
+
     if (a->aq) {
         tcg_gen_mb(TCG_MO_ALL | TCG_BAR_LDAQ);
     }
-    tcg_gen_mov_tl(load_res, src1);
+    tcg_gen_mov_tl(load_res, clean_addr);
     gen_set_gpr(a->rd, load_val);
 
+    tcg_temp_free(clean_addr);
     tcg_temp_free(src1);
     return true;
 }
@@ -46,7 +49,8 @@ static inline bool gen_sc(DisasContext *ctx, arg_atomic *a, TCGMemOp mop)
     TCGLabel *l2 = gen_new_label();
 
     gen_get_gpr(src1, a->rs1);
-    tcg_gen_brcond_tl(TCG_COND_NE, load_res, src1, l1);
+    TCGv clean_addr = clean_data_tbi(ctx, src1);
+    tcg_gen_brcond_tl(TCG_COND_NE, load_res, clean_addr, l1);
 
     gen_get_gpr(src2, a->rs2);
     /*
@@ -75,6 +79,7 @@ static inline bool gen_sc(DisasContext *ctx, arg_atomic *a, TCGMemOp mop)
      */
     tcg_gen_movi_tl(load_res, -1);
 
+    tcg_temp_free(clean_addr);
     tcg_temp_free(dat);
     tcg_temp_free(src1);
     tcg_temp_free(src2);
@@ -91,9 +96,12 @@ static bool gen_amo(DisasContext *ctx, arg_atomic *a,
     gen_get_gpr(src1, a->rs1);
     gen_get_gpr(src2, a->rs2);
 
-    (*func)(src2, src1, src2, ctx->mem_idx, mop);
+    TCGv clean_addr = clean_data_tbi(ctx, src1);
+
+    (*func)(src2, clean_addr, src2, ctx->mem_idx, mop);
 
     gen_set_gpr(a->rd, src2);
+    tcg_temp_free(clean_addr);
     tcg_temp_free(src1);
     tcg_temp_free(src2);
     return true;
