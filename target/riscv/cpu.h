@@ -121,6 +121,9 @@ struct CPURISCVState {
     target_ulong mhartid;
     target_ulong mstatus;
 
+    /* FIXME: Special user mode register to control TBI feature */
+    target_ulong tbicontrol;
+
     /*
      * CAUTION! Unlike the rest of this struct, mip is accessed asynchonously
      * by I/O threads. It should be read with atomic_read. It should be updated

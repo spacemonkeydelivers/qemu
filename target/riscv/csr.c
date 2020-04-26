@@ -176,6 +176,23 @@ static int write_fcsr(CPURISCVState *env, int csrno, target_ulong val)
     return 0;
 }
 
+/* FIXME: functions to access user mode register which controls TBI feature */
+static int read_tbicontrol(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->tbicontrol;
+    return 0;
+}
+
+static int write_tbicontrol(CPURISCVState *env, int csrno, target_ulong val)
+{
+    /* flush translation cache */
+    if (val != env->tbicontrol) {
+        tb_flush(env_cpu(env));
+    }
+    env->tbicontrol = val;
+    return 0;
+}
+
 /* User Timers and Counters */
 static int read_instret(CPURISCVState *env, int csrno, target_ulong *val)
 {
@@ -875,6 +892,7 @@ static riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_FCSR] =                { fs,   read_fcsr,        write_fcsr        },
 
     /* User Timers and Counters */
+    [CSR_TBICONTROL] =          { any,  read_tbicontrol,  write_tbicontrol  },
     [CSR_CYCLE] =               { ctr,  read_instret                        },
     [CSR_INSTRET] =             { ctr,  read_instret                        },
 #if defined(TARGET_RISCV32)

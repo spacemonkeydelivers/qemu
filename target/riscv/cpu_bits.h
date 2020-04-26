@@ -114,6 +114,9 @@
 #define CSR_HPMCOUNTER30H   0xc9e
 #define CSR_HPMCOUNTER31H   0xc9f
 
+/* Custom user register */
+#define CSR_TBICONTROL      0x9c0
+
 /* Machine Timers and Counters */
 #define CSR_MCYCLE          0xb00
 #define CSR_MINSTRET        0xb02
