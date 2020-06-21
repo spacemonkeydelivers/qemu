@@ -121,8 +121,16 @@ struct CPURISCVState {
     target_ulong mhartid;
     target_ulong mstatus;
 
-    /* FIXME: Special user mode register to control TBI feature */
-    target_ulong tbicontrol;
+    /* CSRs for PM */
+    target_ulong mmte;
+    target_ulong mpmmask;
+    target_ulong mpmbase;
+    target_ulong hpmmask;
+    target_ulong hpmbase;
+    target_ulong spmmask;
+    target_ulong spmbase;
+    target_ulong upmmask;
+    target_ulong upmbase;
 
     /*
      * CAUTION! Unlike the rest of this struct, mip is accessed asynchonously

@@ -176,20 +176,155 @@ static int write_fcsr(CPURISCVState *env, int csrno, target_ulong val)
     return 0;
 }
 
-/* FIXME: functions to access user mode register which controls TBI feature */
-static int read_tbicontrol(CPURISCVState *env, int csrno, target_ulong *val)
+/* Functions to access Pointer Masking feature registers */
+static int read_mmte(CPURISCVState *env, int csrno, target_ulong *val)
 {
-    *val = env->tbicontrol;
+    *val = env->mmte;
     return 0;
 }
 
-static int write_tbicontrol(CPURISCVState *env, int csrno, target_ulong val)
+static int write_mmte(CPURISCVState *env, int csrno, target_ulong val)
 {
+    target_ulong old_wpri_val = env->mmte & ~MMTE_MASK;
+    target_ulong new_wpri_val = val & ~MMTE_MASK;
+    assert(old_wpri_val == new_wpri_val);
     /* flush translation cache */
-    if (val != env->tbicontrol) {
+    if (val != env->mmte) {
         tb_flush(env_cpu(env));
     }
-    env->tbicontrol = val;
+    env->mmte = val;
+    return 0;
+}
+
+static int read_smte(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mmte;
+    return 0;
+}
+
+static int write_smte(CPURISCVState *env, int csrno, target_ulong val)
+{
+    target_ulong old_wpri_val = env->mmte & ~SMTE_MASK;
+    target_ulong new_wpri_val = val & ~SMTE_MASK;
+    assert(old_wpri_val == new_wpri_val);
+    write_mmte(env, csrno, val);
+    return 0;
+}
+
+static int read_umte(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mmte;
+    return 0;
+}
+
+static int write_umte(CPURISCVState *env, int csrno, target_ulong val)
+{
+    target_ulong old_wpri_val = env->mmte & ~UMTE_MASK;
+    target_ulong new_wpri_val = val & ~UMTE_MASK;
+    assert(old_wpri_val == new_wpri_val);
+    write_mmte(env, csrno, val);
+    return 0;
+}
+
+static int read_mpmmask(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mpmmask;
+    return 0;
+}
+
+static int write_mpmmask(CPURISCVState *env, int csrno, target_ulong val)
+{
+    // TODO: check for PM field and priviledge
+    /* flush translation cache */
+    if (val != env->mpmmask) {
+        tb_flush(env_cpu(env));
+    }
+    env->mpmmask = val;
+    return 0;
+}
+
+static int read_spmmask(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->spmmask;
+    return 0;
+}
+
+static int write_spmmask(CPURISCVState *env, int csrno, target_ulong val)
+{
+    // TODO: check for PM field and priviledge
+    /* flush translation cache */
+    if (val != env->spmbase) {
+        tb_flush(env_cpu(env));
+    }
+    env->spmbase = val;
+    return 0;
+}
+
+static int read_upmmask(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->upmmask;
+    return 0;
+}
+
+static int write_upmmask(CPURISCVState *env, int csrno, target_ulong val)
+{
+    // TODO: check for PM field and priviledge
+    /* flush translation cache */
+    if (val != env->upmbase) {
+        tb_flush(env_cpu(env));
+    }
+    env->upmbase = val;
+    return 0;
+}
+
+static int read_mpmbase(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mpmbase;
+    return 0;
+}
+
+static int write_mpmbase(CPURISCVState *env, int csrno, target_ulong val)
+{
+    // TODO: check for PM field and priviledge
+    /* flush translation cache */
+    if (val != env->mpmbase) {
+        tb_flush(env_cpu(env));
+    }
+    env->mpmbase = val;
+    return 0;
+}
+
+static int read_spmbase(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->spmbase;
+    return 0;
+}
+
+static int write_spmbase(CPURISCVState *env, int csrno, target_ulong val)
+{
+    // TODO: check for PM field and priviledge
+    /* flush translation cache */
+    if (val != env->spmbase) {
+        tb_flush(env_cpu(env));
+    }
+    env->spmbase = val;
+    return 0;
+}
+
+static int read_upmbase(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->upmbase;
+    return 0;
+}
+
+static int write_upmbase(CPURISCVState *env, int csrno, target_ulong val)
+{
+    // TODO: check for PM field and priviledge
+    /* flush translation cache */
+    if (val != env->upmbase) {
+        tb_flush(env_cpu(env));
+    }
+    env->upmbase = val;
     return 0;
 }
 
@@ -892,7 +1027,6 @@ static riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_FCSR] =                { fs,   read_fcsr,        write_fcsr        },
 
     /* User Timers and Counters */
-    [CSR_TBICONTROL] =          { any,  read_tbicontrol,  write_tbicontrol  },
     [CSR_CYCLE] =               { ctr,  read_instret                        },
     [CSR_INSTRET] =             { ctr,  read_instret                        },
 #if defined(TARGET_RISCV32)
@@ -908,6 +1042,11 @@ static riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_TIMEH] =               { ctr,  read_timeh                          },
 #endif
 #endif
+    
+    /* User Pointer Masking */
+    [CSR_UMTE] =                { any,  read_umte,        write_umte        },
+    [CSR_UPMMASK] =             { any,  read_upmmask,     write_upmmask     },
+    [CSR_UPMBASE] =             { any,  read_upmbase,     write_upmbase     },
 
 #if !defined(CONFIG_USER_ONLY)
     /* Machine Timers and Counters */
@@ -944,6 +1083,11 @@ static riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_MBADADDR] =            { any,  read_mbadaddr,    write_mbadaddr    },
     [CSR_MIP] =                 { any,  NULL,     NULL,     rmw_mip         },
 
+    /* Machine Pointer Masking */
+    [CSR_MMTE] =                { any,  read_mmte,        write_mmte        },
+    [CSR_MPMMASK] =             { any,  read_mpmmask,     write_mpmmask     },
+    [CSR_MPMBASE] =             { any,  read_mpmbase,     write_mpmbase     },
+
     /* Supervisor Trap Setup */
     [CSR_SSTATUS] =             { smode, read_sstatus,     write_sstatus     },
     [CSR_SIE] =                 { smode, read_sie,         write_sie         },
@@ -956,6 +1100,11 @@ static riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_SCAUSE] =              { smode, read_scause,      write_scause      },
     [CSR_SBADADDR] =            { smode, read_sbadaddr,    write_sbadaddr    },
     [CSR_SIP] =                 { smode, NULL,     NULL,     rmw_sip         },
+
+    /* Supervisor Pointer Masking */
+    [CSR_SMTE] =                { smode, read_smte,        write_smte        },
+    [CSR_SPMMASK] =             { smode, read_spmmask,     write_spmmask     },
+    [CSR_SPMBASE] =             { smode, read_spmbase,     write_spmbase     },
 
     /* Supervisor Protection and Translation */
     [CSR_SATP] =                { smode, read_satp,        write_satp        },
