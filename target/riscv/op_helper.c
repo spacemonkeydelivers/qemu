@@ -39,6 +39,21 @@ void helper_raise_exception(CPURISCVState *env, uint32_t exception)
     riscv_raise_exception(env, exception, 0);
 }
 
+target_ulong helper_store_tag(CPURISCVState *env, target_ulong addr, target_ulong data)
+{
+//    assert(0);
+    target_ulong val = 0;
+    return val;
+}
+
+target_ulong helper_load_tag(CPURISCVState *env, target_ulong addr)
+{
+//    assert(0);
+    target_ulong val = 0;
+    return val;
+}
+
+
 target_ulong helper_csrrw(CPURISCVState *env, target_ulong src,
         target_ulong csr)
 {

@@ -195,7 +195,6 @@ static bool gen_store(DisasContext *ctx, arg_sb *a, TCGMemOp memop)
     return true;
 }
 
-
 static bool trans_sb(DisasContext *ctx, arg_sb *a)
 {
     return gen_store(ctx, a, MO_SB);
@@ -212,6 +211,41 @@ static bool trans_sw(DisasContext *ctx, arg_sw *a)
 }
 
 #ifdef TARGET_RISCV64
+
+static bool trans_st(DisasContext *ctx, arg_st *a)
+{
+    TCGv data, addr, dest;
+    dest = tcg_temp_new();
+    data = tcg_temp_new();
+    addr = tcg_temp_new();
+    gen_get_gpr(addr, a->rs1);
+    tcg_gen_addi_tl(addr, addr, a->imm);
+    gen_get_gpr(data, a->rs2);
+
+    gen_helper_store_tag(dest, cpu_env, addr, data);
+
+    tcg_temp_free(addr);
+    tcg_temp_free(data);
+    tcg_temp_free(dest);
+    return true;
+}
+
+static bool trans_lt(DisasContext *ctx, arg_lt *a)
+{
+    TCGv dest, addr;
+    dest = tcg_temp_new();
+    addr = tcg_temp_new();
+    gen_get_gpr(addr, a->rs1);
+    tcg_gen_addi_tl(addr, addr, a->imm);
+
+    gen_helper_load_tag(dest, cpu_env, addr);
+
+    gen_set_gpr(a->rd, dest);
+    tcg_temp_free(dest);
+    tcg_temp_free(addr);
+    return true;
+}
+
 static bool trans_lwu(DisasContext *ctx, arg_lwu *a)
 {
     return gen_load(ctx, a, MO_TEUL);

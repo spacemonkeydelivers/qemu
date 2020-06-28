@@ -211,7 +211,7 @@ typedef enum {
     rv_op_sllw = 49,
     rv_op_srlw = 50,
     rv_op_sraw = 51,
-    rv_op_ldu = 52,
+    rv_op_lt = 52,
     rv_op_lq = 53,
     rv_op_sq = 54,
     rv_op_addid = 55,
@@ -478,6 +478,7 @@ typedef enum {
     rv_op_fsflags = 316,
     rv_op_fsrmi = 317,
     rv_op_fsflagsi = 318,
+    rv_op_st = 319,
 } rv_op;
 
 /* structures */
@@ -833,6 +834,7 @@ const rv_opcode_data opcode_data[] = {
     { "lwu", rv_codec_i, rv_fmt_rd_offset_rs1, NULL, 0, 0, 0 },
     { "ld", rv_codec_i, rv_fmt_rd_offset_rs1, NULL, 0, 0, 0 },
     { "sd", rv_codec_s, rv_fmt_rs2_offset_rs1, NULL, 0, 0, 0 },
+    { "st", rv_codec_s, rv_fmt_rs2_offset_rs1, NULL, 0, 0, 0 },
     { "addiw", rv_codec_i, rv_fmt_rd_rs1_imm, rvcp_addiw, 0, 0, 0 },
     { "slliw", rv_codec_i_sh5, rv_fmt_rd_rs1_imm, NULL, 0, 0, 0 },
     { "srliw", rv_codec_i_sh5, rv_fmt_rd_rs1_imm, NULL, 0, 0, 0 },
@@ -842,7 +844,7 @@ const rv_opcode_data opcode_data[] = {
     { "sllw", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "srlw", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
     { "sraw", rv_codec_r, rv_fmt_rd_rs1_rs2, NULL, 0, 0, 0 },
-    { "ldu", rv_codec_i, rv_fmt_rd_offset_rs1, NULL, 0, 0, 0 },
+    { "lt", rv_codec_i, rv_fmt_rd_offset_rs1, NULL, 0, 0, 0 },
     { "lq", rv_codec_i, rv_fmt_rd_offset_rs1, NULL, 0, 0, 0 },
     { "sq", rv_codec_s, rv_fmt_rs2_offset_rs1, NULL, 0, 0, 0 },
     { "addid", rv_codec_i, rv_fmt_rd_rs1_imm, NULL, 0, 0, 0 },
@@ -1485,7 +1487,7 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             case 4: op = rv_op_lbu; break;
             case 5: op = rv_op_lhu; break;
             case 6: op = rv_op_lwu; break;
-            case 7: op = rv_op_ldu; break;
+            case 7: op = rv_op_lt; break;
             }
             break;
         case 1:
@@ -1547,6 +1549,7 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
             case 2: op = rv_op_sw; break;
             case 3: op = rv_op_sd; break;
             case 4: op = rv_op_sq; break;
+            case 7: op = rv_op_st; break;
             }
             break;
         case 9:
