@@ -67,16 +67,6 @@ static const struct MemmapEntry {
     [VIRT_PCIE_ECAM] =   { 0x30000000,    0x10000000 },
 };
 
-static void create_tag_ram(MemoryRegion *tag_sysmem,
-                           hwaddr base, hwaddr size,
-                           const char *name)
-{
-    MemoryRegion *tagram = g_new(MemoryRegion, 1);
-
-    memory_region_init_ram(tagram, NULL, name, size / 16, &error_fatal);
-    memory_region_add_subregion(tag_sysmem, base / 16, tagram);
-}
-
 static void create_pcie_irq_map(void *fdt, char *nodename,
                                 uint32_t plic_phandle)
 {
@@ -399,8 +389,8 @@ static void riscv_virt_board_init(MachineState *machine)
     object_property_set_int(OBJECT(&s->soc), smp_cpus, "num-harts",
                             &error_abort);
 
-    memory_region_init(tag_sysmem, OBJECT(machine),
-                       "tag-sysmem", UINT64_MAX / 16);
+    memory_region_init_ram(tag_sysmem, NULL, "tag-sysmem",
+                           machine->ram_size / 16, &error_fatal);
 
     object_property_set_link(OBJECT(&s->soc), OBJECT(tag_sysmem),
                              "tag-sysmem", &error_abort);
@@ -524,9 +514,6 @@ static void riscv_virt_board_init(MachineState *machine)
     serial_mm_init(system_memory, memmap[VIRT_UART0].base,
         0, qdev_get_gpio_in(DEVICE(s->plic), UART0_IRQ), 399193,
         serial_hd(0), DEVICE_LITTLE_ENDIAN);
-
-    create_tag_ram(tag_sysmem, memmap[VIRT_DRAM].base,
-                   machine->ram_size, "mach-virt.tag");
 
     g_free(plic_hart_config);
 }
