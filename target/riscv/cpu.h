@@ -234,6 +234,7 @@ typedef struct RISCVCPU {
         bool mmu;
         bool pmp;
     } cfg;
+    MemoryRegion *tagmemory;
 } RISCVCPU;
 
 static inline int riscv_has_ext(CPURISCVState *env, target_ulong ext)

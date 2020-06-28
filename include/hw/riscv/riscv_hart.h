@@ -34,6 +34,7 @@ typedef struct RISCVHartArrayState {
     uint32_t num_harts;
     char *cpu_type;
     RISCVCPU *harts;
+    MemoryRegion *tag_sysmem;
 } RISCVHartArrayState;
 
 #endif

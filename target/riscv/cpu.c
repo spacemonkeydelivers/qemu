@@ -410,6 +410,10 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
         set_misa(env, RVXLEN | target_misa);
     }
 
+    cs->num_ases = 2;
+    cpu_address_space_init(cs, 1, "tag-memory", cpu->tagmemory);
+    cpu_address_space_init(cs, 0, "cpu-memory", cs->memory);
+
     riscv_cpu_register_gdb_regs_for_features(cs);
 
     qemu_init_vcpu(cs);
@@ -421,6 +425,13 @@ static void riscv_cpu_realize(DeviceState *dev, Error **errp)
 static void riscv_cpu_init(Object *obj)
 {
     RISCVCPU *cpu = RISCV_CPU(obj);
+
+    object_property_add_link(obj, "tag-memory",
+                             TYPE_MEMORY_REGION,
+                             (Object **)&cpu->tagmemory,
+                             qdev_prop_allow_set_link_before_realize,
+                             OBJ_PROP_LINK_STRONG,
+                             &error_abort);
 
     cpu_set_cpustate_pointers(cpu);
 }

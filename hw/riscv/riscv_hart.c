@@ -28,6 +28,7 @@
 static Property riscv_harts_props[] = {
     DEFINE_PROP_UINT32("num-harts", RISCVHartArrayState, num_harts, 1),
     DEFINE_PROP_STRING("cpu-type", RISCVHartArrayState, cpu_type),
+    DEFINE_PROP_LINK("tag-sysmem", RISCVHartArrayState, tag_sysmem, TYPE_MEMORY_REGION, MemoryRegion *),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -50,6 +51,7 @@ static void riscv_harts_realize(DeviceState *dev, Error **errp)
                                 sizeof(RISCVCPU), s->cpu_type,
                                 &error_abort, NULL);
         s->harts[n].env.mhartid = n;
+        object_property_set_link(OBJECT(&s->harts[n]), OBJECT(s->tag_sysmem), "tag-memory", &error_abort);
         qemu_register_reset(riscv_harts_cpu_reset, &s->harts[n]);
         object_property_set_bool(OBJECT(&s->harts[n]), true,
                                  "realized", &err);
