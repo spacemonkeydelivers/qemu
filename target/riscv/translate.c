@@ -54,7 +54,9 @@ typedef struct DisasContext {
        to any system register, which includes CSR_FRM, so we do not have
        to reset this known value.  */
     int frm;
-    uint8_t tbicontrol;
+    uint8_t pm_enabled;
+    target_ulong pm_mask;
+    target_ulong pm_base;
     bool ext_ifencei;
 } DisasContext;
 
@@ -104,28 +106,46 @@ static void generate_exception_mbadaddr(DisasContext *ctx, int excp)
     ctx->base.is_jmp = DISAS_NORETURN;
 }
 
-/* Generates address adjustment for TBI */
-static void gen_top_byte_ignore(DisasContext *s, TCGv_i64 dst,
-                                TCGv_i64 src, int tbi)
+/* Generates address adjustment for PM */
+static void gen_top_byte_ignore(DisasContext *s,
+                                TCGv_i64      dst,
+                                TCGv_i64      src)
 {
-    if (tbi == 0) {
+    if (s->pm_enabled == 0) {
         /* Load unmodified address */
         tcg_gen_mov_i64(dst, src);
     }
     else {
-        /* Sign-extend from bit 55.  */
-        tcg_gen_sextract_i64(dst, src, 0, 56);
-
-        // FIXME: we should sign extend iff this is user-space address,
-        // that is if high part is 0.
-        // We should not support TBI for priviledged mode at the moment
+        // FIXME: need to support 32 bit
+        TCGv_i64 mask     = tcg_const_i64(s->pm_mask);
+        TCGv_i64 mask_neg = tcg_const_i64(~s->pm_mask);
+        TCGv_i64 base     = tcg_const_i64(s->pm_base);
+        /* calculate (mask & base)  */
+        TCGv res1 = tcg_temp_new();
+        tcg_gen_and_tl(res1, mask, base);
+        /* calculate (addr & ~mask) */
+        TCGv res2 = tcg_temp_new();
+        tcg_gen_and_tl(res2, mask_neg, src);
+        /* calculate (1) | (2) */
+        TCGv res3 = tcg_temp_new();
+        tcg_gen_or_tl(res3, res2, res1);
+        /* move result to dst */
+        tcg_gen_mov_i64(dst, res3);
+        /* free allocated temps */
+        tcg_temp_free(res1);
+        tcg_temp_free(res2);
+        tcg_temp_free(res3);
+        tcg_temp_free_i64(mask);
+        tcg_temp_free_i64(mask_neg);
+        tcg_temp_free_i64(base);
     }
 }
 
-static TCGv_i64 clean_data_tbi(DisasContext *s, TCGv_i64 addr)
+static TCGv_i64 apply_pointer_masking(DisasContext *s, TCGv_i64 addr)
 {
+    // FIXME: potential memory leak, need to free tmp
     TCGv_i64 clean = tcg_temp_new();
-    gen_top_byte_ignore(s, clean, addr, s->tbicontrol);
+    gen_top_byte_ignore(s, clean, addr);
     return clean;
 }
 
@@ -370,7 +390,7 @@ static void gen_load_c(DisasContext *ctx, uint32_t opc, int rd, int rs1,
     TCGv raw_addr = tcg_temp_new();
     TCGv t1 = tcg_temp_new();
     gen_get_gpr(raw_addr, rs1);
-    TCGv clean_addr = clean_data_tbi(ctx, raw_addr);
+    TCGv clean_addr = apply_pointer_masking(ctx, raw_addr);
     tcg_gen_addi_tl(clean_addr, clean_addr, imm);
     int memop = tcg_memop_lookup[(opc >> 12) & 0x7];
 
@@ -392,7 +412,7 @@ static void gen_store_c(DisasContext *ctx, uint32_t opc, int rs1, int rs2,
     TCGv raw_addr = tcg_temp_new();
     TCGv dat = tcg_temp_new();
     gen_get_gpr(raw_addr, rs1);
-    TCGv clean_addr = clean_data_tbi(ctx, raw_addr);
+    TCGv clean_addr = apply_pointer_masking(ctx, raw_addr);
     tcg_gen_addi_tl(clean_addr, clean_addr, imm);
     gen_get_gpr(dat, rs2);
     int memop = tcg_memop_lookup[(opc >> 12) & 0x7];
@@ -447,7 +467,7 @@ static void gen_fp_load(DisasContext *ctx, uint32_t opc, int rd,
 
     raw_addr = tcg_temp_new();
     gen_get_gpr(raw_addr, rs1);
-    TCGv clean_addr = clean_data_tbi(ctx, raw_addr);
+    TCGv clean_addr = apply_pointer_masking(ctx, raw_addr);
     tcg_gen_addi_tl(clean_addr, clean_addr, imm);
 
     switch (opc) {
@@ -488,7 +508,7 @@ static void gen_fp_store(DisasContext *ctx, uint32_t opc, int rs1,
 
     raw_addr = tcg_temp_new();
     gen_get_gpr(raw_addr, rs1);
-    TCGv clean_addr = clean_data_tbi(ctx, raw_addr);
+    TCGv clean_addr = apply_pointer_masking(ctx, raw_addr);
     tcg_gen_addi_tl(clean_addr, clean_addr, imm);
 
     switch (opc) {
@@ -795,7 +815,31 @@ static void riscv_tr_init_disas_context(DisasContextBase *dcbase, CPUState *cs)
     ctx->priv_ver = env->priv_ver;
     ctx->misa = env->misa;
     ctx->frm = -1;  /* unknown rounding mode */
-    ctx->tbicontrol = env->tbicontrol;
+    switch (env->priv)
+    {
+        case PRV_U:
+            ctx->pm_enabled = get_field(env->mmte, UMTE_U_PM_ENABLE);
+            ctx->pm_mask = env->upmmask;
+            ctx->pm_base = env->upmbase;
+            break;
+        case PRV_S:
+            ctx->pm_enabled = get_field(env->mmte, SMTE_S_PM_ENABLE);
+            ctx->pm_mask = env->spmmask;
+            ctx->pm_base = env->spmbase;
+            break;
+        case PRV_H:
+            ctx->pm_enabled = get_field(env->mmte, HMTE_H_PM_ENABLE);
+            ctx->pm_mask = env->hpmmask;
+            ctx->pm_base = env->hpmbase;
+            break;
+        case PRV_M:
+            ctx->pm_enabled = get_field(env->mmte, MMTE_M_PM_ENABLE);
+            ctx->pm_mask = env->mpmmask;
+            ctx->pm_base = env->mpmbase;
+            break;
+        default:
+            assert(0 && "Unreachable");
+    }
     ctx->ext_ifencei = cpu->cfg.ext_ifencei;
 }
 

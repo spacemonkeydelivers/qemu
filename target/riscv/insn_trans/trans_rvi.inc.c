@@ -141,7 +141,7 @@ static bool gen_load(DisasContext *ctx, arg_lb *a, TCGMemOp memop)
     TCGv raw_addr = tcg_temp_new();
     TCGv t1 = tcg_temp_new();
     gen_get_gpr(raw_addr, a->rs1);
-    TCGv clean_addr = clean_data_tbi(ctx, raw_addr);
+    TCGv clean_addr = apply_pointer_masking(ctx, raw_addr);
     tcg_gen_addi_tl(clean_addr, clean_addr, a->imm);
 
     tcg_gen_qemu_ld_tl(t1, clean_addr, ctx->mem_idx, memop);
@@ -184,7 +184,7 @@ static bool gen_store(DisasContext *ctx, arg_sb *a, TCGMemOp memop)
     TCGv raw_addr = tcg_temp_new();
     TCGv dat = tcg_temp_new();
     gen_get_gpr(raw_addr, a->rs1);
-    TCGv clean_addr = clean_data_tbi(ctx, raw_addr);
+    TCGv clean_addr = apply_pointer_masking(ctx, raw_addr);
     tcg_gen_addi_tl(clean_addr, clean_addr, a->imm);
     gen_get_gpr(dat, a->rs2);
 

@@ -27,7 +27,7 @@ static bool trans_flw(DisasContext *ctx, arg_flw *a)
 {
     TCGv raw_addr = tcg_temp_new();
     gen_get_gpr(raw_addr, a->rs1);
-    TCGv clean_addr = clean_data_tbi(ctx, raw_addr);
+    TCGv clean_addr = apply_pointer_masking(ctx, raw_addr);
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
     tcg_gen_addi_tl(clean_addr, clean_addr, a->imm);
@@ -46,7 +46,7 @@ static bool trans_fsw(DisasContext *ctx, arg_fsw *a)
 {
     TCGv raw_addr = tcg_temp_new();
     gen_get_gpr(raw_addr, a->rs1);
-    TCGv clean_addr = clean_data_tbi(ctx, raw_addr);
+    TCGv clean_addr = apply_pointer_masking(ctx, raw_addr);
 
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);

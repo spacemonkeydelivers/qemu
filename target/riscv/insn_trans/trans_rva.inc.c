@@ -26,7 +26,7 @@ static inline bool gen_lr(DisasContext *ctx, arg_atomic *a, TCGMemOp mop)
     if (a->rl) {
         tcg_gen_mb(TCG_MO_ALL | TCG_BAR_STRL);
     }
-    TCGv clean_addr = clean_data_tbi(ctx, src1);
+    TCGv clean_addr = apply_pointer_masking(ctx, src1);
     tcg_gen_qemu_ld_tl(load_val, clean_addr, ctx->mem_idx, mop);
 
     if (a->aq) {
@@ -49,7 +49,7 @@ static inline bool gen_sc(DisasContext *ctx, arg_atomic *a, TCGMemOp mop)
     TCGLabel *l2 = gen_new_label();
 
     gen_get_gpr(src1, a->rs1);
-    TCGv clean_addr = clean_data_tbi(ctx, src1);
+    TCGv clean_addr = apply_pointer_masking(ctx, src1);
     tcg_gen_brcond_tl(TCG_COND_NE, load_res, clean_addr, l1);
 
     gen_get_gpr(src2, a->rs2);
@@ -96,7 +96,7 @@ static bool gen_amo(DisasContext *ctx, arg_atomic *a,
     gen_get_gpr(src1, a->rs1);
     gen_get_gpr(src2, a->rs2);
 
-    TCGv clean_addr = clean_data_tbi(ctx, src1);
+    TCGv clean_addr = apply_pointer_masking(ctx, src1);
 
     (*func)(src2, clean_addr, src2, ctx->mem_idx, mop);
 
