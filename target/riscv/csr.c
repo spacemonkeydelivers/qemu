@@ -252,8 +252,6 @@ static int read_mpmmask(CPURISCVState *env, int csrno, target_ulong *val)
 
 static int write_mpmmask(CPURISCVState *env, int csrno, target_ulong val)
 {
-    if (check_pm_current_disabled(env, csrno))
-        return 0;
     /* flush translation cache */
     if (val != env->mpmmask) {
         tb_flush(env_cpu(env));
@@ -306,8 +304,6 @@ static int read_mpmbase(CPURISCVState *env, int csrno, target_ulong *val)
 
 static int write_mpmbase(CPURISCVState *env, int csrno, target_ulong val)
 {
-    if (check_pm_current_disabled(env, csrno))
-        return 0;
     /* flush translation cache */
     if (val != env->mpmbase) {
         tb_flush(env_cpu(env));
