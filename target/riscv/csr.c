@@ -177,6 +177,21 @@ static int write_fcsr(CPURISCVState *env, int csrno, target_ulong val)
 }
 
 /* Functions to access Pointer Masking feature registers */
+static int check_pm_current_disabled(CPURISCVState *env, int csrno)
+{
+    int csr_priv = get_field(csrno, 0x300);
+    int cur_bit_pos = (env->priv == PRV_U) ? U_PM_CURRENT :
+        (env->priv == PRV_S) ? S_PM_CURRENT :
+        (env->priv == PRV_H) ? H_PM_CURRENT :
+        (env->priv == PRV_M) ? M_PM_CURRENT : -1;
+    assert(cur_bit_pos != -1);
+    int pm_current = get_field(env->mmte, cur_bit_pos);
+    if ((env->priv == csr_priv) && !pm_current)
+        return 1;
+    else
+        return 0;
+}
+
 static int read_mmte(CPURISCVState *env, int csrno, target_ulong *val)
 {
     *val = env->mmte;
@@ -205,6 +220,8 @@ static int write_smte(CPURISCVState *env, int csrno, target_ulong val)
 {
     target_ulong wpri_val = val & SMTE_MASK;
     assert(val == wpri_val);
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
     target_ulong new_val = val | (env->mmte & ~SMTE_MASK);
     write_mmte(env, csrno, new_val);
     return 0;
@@ -220,6 +237,8 @@ static int write_umte(CPURISCVState *env, int csrno, target_ulong val)
 {
     target_ulong wpri_val = val & UMTE_MASK;
     assert(val == wpri_val);
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
     target_ulong new_val = val | (env->mmte & ~UMTE_MASK);
     write_mmte(env, csrno, new_val);
     return 0;
@@ -233,6 +252,8 @@ static int read_mpmmask(CPURISCVState *env, int csrno, target_ulong *val)
 
 static int write_mpmmask(CPURISCVState *env, int csrno, target_ulong val)
 {
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
     /* flush translation cache */
     if (val != env->mpmmask) {
         tb_flush(env_cpu(env));
@@ -249,6 +270,8 @@ static int read_spmmask(CPURISCVState *env, int csrno, target_ulong *val)
 
 static int write_spmmask(CPURISCVState *env, int csrno, target_ulong val)
 {
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
     /* flush translation cache */
     if (val != env->spmmask) {
         tb_flush(env_cpu(env));
@@ -265,6 +288,8 @@ static int read_upmmask(CPURISCVState *env, int csrno, target_ulong *val)
 
 static int write_upmmask(CPURISCVState *env, int csrno, target_ulong val)
 {
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
     /* flush translation cache */
     if (val != env->upmmask) {
         tb_flush(env_cpu(env));
@@ -281,6 +306,8 @@ static int read_mpmbase(CPURISCVState *env, int csrno, target_ulong *val)
 
 static int write_mpmbase(CPURISCVState *env, int csrno, target_ulong val)
 {
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
     /* flush translation cache */
     if (val != env->mpmbase) {
         tb_flush(env_cpu(env));
@@ -297,6 +324,8 @@ static int read_spmbase(CPURISCVState *env, int csrno, target_ulong *val)
 
 static int write_spmbase(CPURISCVState *env, int csrno, target_ulong val)
 {
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
     /* flush translation cache */
     if (val != env->spmbase) {
         tb_flush(env_cpu(env));
@@ -313,6 +342,8 @@ static int read_upmbase(CPURISCVState *env, int csrno, target_ulong *val)
 
 static int write_upmbase(CPURISCVState *env, int csrno, target_ulong val)
 {
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
     /* flush translation cache */
     if (val != env->upmbase) {
         tb_flush(env_cpu(env));
@@ -944,32 +975,8 @@ int riscv_csrrw(CPURISCVState *env, int csrno, target_ulong *ret_value,
 #if !defined(CONFIG_USER_ONLY)
     int csr_priv = get_field(csrno, 0x300);
     int read_only = get_field(csrno, 0xC00) == 3;
-    int pm_regs = (csrno == CSR_UMTE) || (csrno == CSR_UPMMASK) || (csrno == CSR_UPMBASE) ||
-                  (csrno == CSR_SMTE) || (csrno == CSR_SPMMASK) || (csrno == CSR_SPMBASE) ||
-                  (csrno == CSR_HMTE) || (csrno == CSR_HPMMASK) || (csrno == CSR_HPMBASE) ||
-                  (csrno == CSR_MMTE) || (csrno == CSR_MPMMASK) || (csrno == CSR_MPMBASE);
-    /* In case of accessing pm regs we have to conduct different check */
-    if (pm_regs) {
-        int cur_bit_pos = (env->priv == PRV_U) ? U_PM_CURRENT :
-                          (env->priv == PRV_S) ? S_PM_CURRENT : 
-                          (env->priv == PRV_H) ? H_PM_CURRENT : 
-                          (env->priv == PRV_M) ? M_PM_CURRENT : -1;
-        assert(cur_bit_pos != -1);
-        // FIXME: allow in m-mode to write to the register
-        int pm_current = get_field(env->mmte, cur_bit_pos) || (env->priv == PRV_M);
-        /* if we have same priv level and no PM.Current set for corresponding mode, do nothing */
-        if ((csr_priv == env->priv) && !pm_current) {
-            return 0;
-        }
-        /* if we try to write to more priv level csr, do nothing*/
-        if (csr_priv > env->priv){
-            return 0;
-        }
-
-    } else {
-        if ((write_mask && read_only) || (env->priv < csr_priv)) {
-            return -1;
-        }
+    if ((write_mask && read_only) || (env->priv < csr_priv)) {
+        return -1;
     }
 #endif
 
