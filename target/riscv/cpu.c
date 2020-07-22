@@ -218,6 +218,15 @@ static void riscv_cpu_dump_state(CPUState *cs, FILE *f, int flags)
 
     qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "pc      ", env->pc);
 #ifndef CONFIG_USER_ONLY
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "mmte    ", env->mmte);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "upmbase ", env->upmbase);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "spmbase ", env->spmbase);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "hpmbase ", env->hpmbase);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "mpmbase ", env->mpmbase);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "upmmask ", env->upmmask);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "hpmmask ", env->spmmask);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "spmmask ", env->hpmmask);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "mpmmask ", env->mpmmask);
     qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "mhartid ", env->mhartid);
     qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "mstatus ", env->mstatus);
     qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "mip     ",
