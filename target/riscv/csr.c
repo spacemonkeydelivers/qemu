@@ -185,9 +185,8 @@ static int read_mmte(CPURISCVState *env, int csrno, target_ulong *val)
 
 static int write_mmte(CPURISCVState *env, int csrno, target_ulong val)
 {
-    target_ulong old_wpri_val = env->mmte & ~MMTE_MASK;
-    target_ulong new_wpri_val = val & ~MMTE_MASK;
-    assert(old_wpri_val == new_wpri_val);
+    target_ulong wpri_val = val & MMTE_MASK;
+    assert(val == wpri_val);
     /* flush translation cache */
     if (val != env->mmte) {
         tb_flush(env_cpu(env));
@@ -204,10 +203,10 @@ static int read_smte(CPURISCVState *env, int csrno, target_ulong *val)
 
 static int write_smte(CPURISCVState *env, int csrno, target_ulong val)
 {
-    target_ulong old_wpri_val = env->mmte & ~SMTE_MASK;
-    target_ulong new_wpri_val = val & ~SMTE_MASK;
-    assert(old_wpri_val == new_wpri_val);
-    write_mmte(env, csrno, val);
+    target_ulong wpri_val = val & SMTE_MASK;
+    assert(val == wpri_val);
+    target_ulong new_val = val | (env->mmte & ~SMTE_MASK);
+    write_mmte(env, csrno, new_val);
     return 0;
 }
 
@@ -219,10 +218,10 @@ static int read_umte(CPURISCVState *env, int csrno, target_ulong *val)
 
 static int write_umte(CPURISCVState *env, int csrno, target_ulong val)
 {
-    target_ulong old_wpri_val = env->mmte & ~UMTE_MASK;
-    target_ulong new_wpri_val = val & ~UMTE_MASK;
-    assert(old_wpri_val == new_wpri_val);
-    write_mmte(env, csrno, val);
+    target_ulong wpri_val = val & UMTE_MASK;
+    assert(val == wpri_val);
+    target_ulong new_val = val | (env->mmte & ~UMTE_MASK);
+    write_mmte(env, csrno, new_val);
     return 0;
 }
 
@@ -251,10 +250,10 @@ static int read_spmmask(CPURISCVState *env, int csrno, target_ulong *val)
 static int write_spmmask(CPURISCVState *env, int csrno, target_ulong val)
 {
     /* flush translation cache */
-    if (val != env->spmbase) {
+    if (val != env->spmmask) {
         tb_flush(env_cpu(env));
     }
-    env->spmbase = val;
+    env->spmmask = val;
     return 0;
 }
 
@@ -267,10 +266,10 @@ static int read_upmmask(CPURISCVState *env, int csrno, target_ulong *val)
 static int write_upmmask(CPURISCVState *env, int csrno, target_ulong val)
 {
     /* flush translation cache */
-    if (val != env->upmbase) {
+    if (val != env->upmmask) {
         tb_flush(env_cpu(env));
     }
-    env->upmbase = val;
+    env->upmmask = val;
     return 0;
 }
 
@@ -956,7 +955,8 @@ int riscv_csrrw(CPURISCVState *env, int csrno, target_ulong *ret_value,
                           (env->priv == PRV_H) ? H_PM_CURRENT : 
                           (env->priv == PRV_M) ? M_PM_CURRENT : -1;
         assert(cur_bit_pos != -1);
-        int pm_current = get_field(env->mmte, cur_bit_pos);
+        // FIXME: allow in m-mode to write to the register
+        int pm_current = get_field(env->mmte, cur_bit_pos) || (env->priv == PRV_M);
         /* if we have same priv level and no PM.Current set for corresponding mode, do nothing */
         if ((csr_priv == env->priv) && !pm_current) {
             return 0;
