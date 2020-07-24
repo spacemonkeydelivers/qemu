@@ -119,6 +119,9 @@
 #define CSR_UPMMASK         0x8c1
 #define CSR_UPMBASE         0x8c2
 
+/* FIXME: for test purposes only*/
+#define CSR_EXIT            0x8c3
+
 /* Machine Timers and Counters */
 #define CSR_MCYCLE          0xb00
 #define CSR_MINSTRET        0xb02
