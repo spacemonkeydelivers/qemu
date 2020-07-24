@@ -117,6 +117,9 @@
 /* Custom user register */
 #define CSR_TBICONTROL      0x9c0
 
+/* FIXME: for test purposes only*/
+#define CSR_EXIT            0x8c3
+
 /* Machine Timers and Counters */
 #define CSR_MCYCLE          0xb00
 #define CSR_MINSTRET        0xb02
