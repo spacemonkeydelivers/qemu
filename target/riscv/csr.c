@@ -920,17 +920,9 @@ static riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_TIMEH] =               { ctr,  read_timeh                          },
 #endif
 #endif
-<<<<<<< HEAD
-=======
 
     /* FIXME: for test purposes only*/
     [CSR_EXIT] =                { any,  read_exit,        write_exit        },
-
-    /* User Pointer Masking */
-    [CSR_UMTE] =                { any,  read_umte,        write_umte        },
-    [CSR_UPMMASK] =             { any,  read_upmmask,     write_upmmask     },
-    [CSR_UPMBASE] =             { any,  read_upmbase,     write_upmbase     },
->>>>>>> 78c326d0fe... [REVERTME] temp solution to exit qemu
 
 #if !defined(CONFIG_USER_ONLY)
     /* Machine Timers and Counters */
