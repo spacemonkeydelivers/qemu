@@ -54,7 +54,7 @@ typedef struct DisasContext {
        to any system register, which includes CSR_FRM, so we do not have
        to reset this known value.  */
     int frm;
-    uint8_t tbicontrol;
+    uint8_t mtecontrol;
     bool ext_ifencei;
 } DisasContext;
 
@@ -113,6 +113,19 @@ static void gen_top_byte_ignore(DisasContext *s, TCGv_i64 dst,
         tcg_gen_mov_i64(dst, src);
     }
     else {
+        TCGv tagged_addr = tcg_temp_new();
+        TCGv loaded_tag  = tcg_temp_new();
+        TCGv shifted_tag = tcg_temp_new();
+
+        tcg_gen_mov_i64(tagged_addr, src);
+        /* get tag */
+        tcg_gen_shri_i64(shifted_tag, tagged_addr, 56);
+        /* Sign-extend from bit 55.  */
+        tcg_gen_sextract_i64(dst, src, 0, 56);
+        /* load tag from memory*/
+        gen_helper_load_tag(loaded_tag, cpu_env, dst);
+        /* compare tags and throw exception */
+        gen_helper_check_tag(cpu_env, loaded_tag, shifted_tag);
         /* Sign-extend from bit 55.  */
         tcg_gen_sextract_i64(dst, src, 0, 56);
 
@@ -125,7 +138,7 @@ static void gen_top_byte_ignore(DisasContext *s, TCGv_i64 dst,
 static TCGv_i64 clean_data_tbi(DisasContext *s, TCGv_i64 addr)
 {
     TCGv_i64 clean = tcg_temp_new();
-    gen_top_byte_ignore(s, clean, addr, s->tbicontrol);
+    gen_top_byte_ignore(s, clean, addr, s->mtecontrol);
     return clean;
 }
 
@@ -795,7 +808,7 @@ static void riscv_tr_init_disas_context(DisasContextBase *dcbase, CPUState *cs)
     ctx->priv_ver = env->priv_ver;
     ctx->misa = env->misa;
     ctx->frm = -1;  /* unknown rounding mode */
-    ctx->tbicontrol = env->tbicontrol;
+    ctx->mtecontrol = env->mtecontrol;
     ctx->ext_ifencei = cpu->cfg.ext_ifencei;
 }
 

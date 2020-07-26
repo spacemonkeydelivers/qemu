@@ -188,20 +188,20 @@ static int read_exit(CPURISCVState *env, int csrno, target_ulong *val)
     return 0;
 }
 
-/* FIXME: functions to access user mode register which controls TBI feature */
-static int read_tbicontrol(CPURISCVState *env, int csrno, target_ulong *val)
+/* FIXME: functions to access user mode register which controls MTE feature */
+static int read_mtecontrol(CPURISCVState *env, int csrno, target_ulong *val)
 {
-    *val = env->tbicontrol;
+    *val = env->mtecontrol;
     return 0;
 }
 
-static int write_tbicontrol(CPURISCVState *env, int csrno, target_ulong val)
+static int write_mtecontrol(CPURISCVState *env, int csrno, target_ulong val)
 {
     /* flush translation cache */
-    if (val != env->tbicontrol) {
+    if (val != env->mtecontrol) {
         tb_flush(env_cpu(env));
     }
-    env->tbicontrol = val;
+    env->mtecontrol = val;
     return 0;
 }
 
@@ -904,7 +904,7 @@ static riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     [CSR_FCSR] =                { fs,   read_fcsr,        write_fcsr        },
 
     /* User Timers and Counters */
-    [CSR_TBICONTROL] =          { any,  read_tbicontrol,  write_tbicontrol  },
+    [CSR_MTECONTROL] =          { any,  read_mtecontrol,  write_mtecontrol  },
     [CSR_CYCLE] =               { ctr,  read_instret                        },
     [CSR_INSTRET] =             { ctr,  read_instret                        },
 #if defined(TARGET_RISCV32)

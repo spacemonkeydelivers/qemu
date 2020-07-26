@@ -68,6 +68,7 @@ DEF_HELPER_FLAGS_1(fclass_d, TCG_CALL_NO_RWG_SE, tl, i64)
 
 DEF_HELPER_2(load_tag, tl, env, tl)
 DEF_HELPER_3(store_tag, tl, env, tl, tl)
+DEF_HELPER_3(check_tag, void, env, tl, tl)
 
 /* Special functions */
 DEF_HELPER_3(csrrw, tl, env, tl, tl)

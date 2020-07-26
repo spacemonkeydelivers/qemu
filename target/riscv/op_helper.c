@@ -216,8 +216,8 @@ target_ulong helper_store_tag(CPURISCVState *env, target_ulong addr, target_ulon
     int mmu_idx = cpu_mmu_index(env, false);
     uint8_t *mem;
 
-    mem = allocation_tag_mem(env, mmu_idx, addr, MMU_DATA_LOAD, TAG_GRANULE,
-			     MMU_DATA_LOAD, 1, GETPC());
+    mem = allocation_tag_mem(env, mmu_idx, addr, MMU_DATA_STORE, TAG_GRANULE,
+			     MMU_DATA_STORE, 1, GETPC());
     assert(mem);
     store_tag1(addr, mem, data);
 
@@ -240,6 +240,13 @@ target_ulong helper_load_tag(CPURISCVState *env, target_ulong addr)
 
 
     return rtag;
+}
+
+void helper_check_tag(CPURISCVState *env, target_ulong tag1, target_ulong tag2)
+{
+    if (tag1 != tag2) {
+        riscv_raise_exception(env, RISCV_EXCP_SECURE_MONITOR_FAULT, GETPC());
+    }
 }
 
 

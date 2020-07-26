@@ -115,7 +115,7 @@
 #define CSR_HPMCOUNTER31H   0xc9f
 
 /* Custom user register */
-#define CSR_TBICONTROL      0x9c0
+#define CSR_MTECONTROL      0x8c0
 
 /* FIXME: for test purposes only*/
 #define CSR_EXIT            0x8c3
@@ -501,6 +501,7 @@
 #define RISCV_EXCP_INST_PAGE_FAULT         0xc /* since: priv-1.10.0 */
 #define RISCV_EXCP_LOAD_PAGE_FAULT         0xd /* since: priv-1.10.0 */
 #define RISCV_EXCP_STORE_PAGE_FAULT        0xf /* since: priv-1.10.0 */
+#define RISCV_EXCP_SECURE_MONITOR_FAULT    0x10
 
 #define RISCV_EXCP_INT_FLAG                0x80000000
 #define RISCV_EXCP_INT_MASK                0x7fffffff
