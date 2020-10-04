@@ -137,14 +137,16 @@ static bool trans_bgeu(DisasContext *ctx, arg_bgeu *a)
 
 static bool gen_load(DisasContext *ctx, arg_lb *a, MemOp memop)
 {
-    TCGv t0 = tcg_temp_new();
+    TCGv effective_addr = tcg_temp_new();
     TCGv t1 = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1);
-    tcg_gen_addi_tl(t0, t0, a->imm);
+    gen_get_gpr(effective_addr, a->rs1);
+    tcg_gen_addi_tl(effective_addr, effective_addr, a->imm);
+    TCGv masked_addr = apply_pointer_masking(ctx, effective_addr);
 
-    tcg_gen_qemu_ld_tl(t1, t0, ctx->mem_idx, memop);
+    tcg_gen_qemu_ld_tl(t1, masked_addr, ctx->mem_idx, memop);
     gen_set_gpr(a->rd, t1);
-    tcg_temp_free(t0);
+    tcg_temp_free(effective_addr);
+    tcg_temp_free(masked_addr);
     tcg_temp_free(t1);
     return true;
 }
@@ -176,14 +178,16 @@ static bool trans_lhu(DisasContext *ctx, arg_lhu *a)
 
 static bool gen_store(DisasContext *ctx, arg_sb *a, MemOp memop)
 {
-    TCGv t0 = tcg_temp_new();
+    TCGv effective_addr = tcg_temp_new();
     TCGv dat = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1);
-    tcg_gen_addi_tl(t0, t0, a->imm);
+    gen_get_gpr(effective_addr, a->rs1);
+    tcg_gen_addi_tl(effective_addr, effective_addr, a->imm);
+    TCGv masked_addr = apply_pointer_masking(ctx, effective_addr);
     gen_get_gpr(dat, a->rs2);
 
-    tcg_gen_qemu_st_tl(dat, t0, ctx->mem_idx, memop);
-    tcg_temp_free(t0);
+    tcg_gen_qemu_st_tl(dat, masked_addr, ctx->mem_idx, memop);
+    tcg_temp_free(masked_addr);
+    tcg_temp_free(effective_addr);
     tcg_temp_free(dat);
     return true;
 }
