@@ -415,10 +415,11 @@ static void gen_jal(DisasContext *ctx, int rd, target_ulong imm)
 static void gen_load_c(DisasContext *ctx, uint32_t opc, int rd, int rs1,
         target_long imm)
 {
-    TCGv t0 = tcg_temp_new();
+    TCGv effective_addr = tcg_temp_new();
     TCGv t1 = tcg_temp_new();
-    gen_get_gpr(t0, rs1);
-    tcg_gen_addi_tl(t0, t0, imm);
+    gen_get_gpr(effective_addr, rs1);
+    tcg_gen_addi_tl(effective_addr, effective_addr, imm);
+    TCGv masked_addr = apply_pointer_masking(ctx, effective_addr);
     int memop = tcg_memop_lookup[(opc >> 12) & 0x7];
 
     if (memop < 0) {
@@ -426,19 +427,21 @@ static void gen_load_c(DisasContext *ctx, uint32_t opc, int rd, int rs1,
         return;
     }
 
-    tcg_gen_qemu_ld_tl(t1, t0, ctx->mem_idx, memop);
+    tcg_gen_qemu_ld_tl(t1, masked_addr, ctx->mem_idx, memop);
     gen_set_gpr(rd, t1);
-    tcg_temp_free(t0);
+    tcg_temp_free(effective_addr);
+    tcg_temp_free(masked_addr);
     tcg_temp_free(t1);
 }
 
 static void gen_store_c(DisasContext *ctx, uint32_t opc, int rs1, int rs2,
         target_long imm)
 {
-    TCGv t0 = tcg_temp_new();
+    TCGv effective_addr = tcg_temp_new();
     TCGv dat = tcg_temp_new();
-    gen_get_gpr(t0, rs1);
-    tcg_gen_addi_tl(t0, t0, imm);
+    gen_get_gpr(effective_addr, rs1);
+    tcg_gen_addi_tl(effective_addr, effective_addr, imm);
+    TCGv masked_addr = apply_pointer_masking(ctx, effective_addr);
     gen_get_gpr(dat, rs2);
     int memop = tcg_memop_lookup[(opc >> 12) & 0x7];
 
@@ -447,8 +450,9 @@ static void gen_store_c(DisasContext *ctx, uint32_t opc, int rs1, int rs2,
         return;
     }
 
-    tcg_gen_qemu_st_tl(dat, t0, ctx->mem_idx, memop);
-    tcg_temp_free(t0);
+    tcg_gen_qemu_st_tl(dat, masked_addr, ctx->mem_idx, memop);
+    tcg_temp_free(effective_addr);
+    tcg_temp_free(masked_addr);
     tcg_temp_free(dat);
 }
 #endif
@@ -488,23 +492,24 @@ static inline void mark_fs_dirty(DisasContext *ctx) { }
 static void gen_fp_load(DisasContext *ctx, uint32_t opc, int rd,
         int rs1, target_long imm)
 {
-    TCGv t0;
+    TCGv effective_addr;
 
     if (ctx->mstatus_fs == 0) {
         gen_exception_illegal(ctx);
         return;
     }
 
-    t0 = tcg_temp_new();
-    gen_get_gpr(t0, rs1);
-    tcg_gen_addi_tl(t0, t0, imm);
+    effective_addr = tcg_temp_new();
+    gen_get_gpr(effective_addr, rs1);
+    tcg_gen_addi_tl(effective_addr, effective_addr, imm);
+    TCGv masked_addr = apply_pointer_masking(ctx, effective_addr);
 
     switch (opc) {
     case OPC_RISC_FLW:
         if (!has_ext(ctx, RVF)) {
             goto do_illegal;
         }
-        tcg_gen_qemu_ld_i64(cpu_fpr[rd], t0, ctx->mem_idx, MO_TEUL);
+        tcg_gen_qemu_ld_i64(cpu_fpr[rd], masked_addr, ctx->mem_idx, MO_TEUL);
         /* RISC-V requires NaN-boxing of narrower width floating point values */
         tcg_gen_ori_i64(cpu_fpr[rd], cpu_fpr[rd], 0xffffffff00000000ULL);
         break;
@@ -512,14 +517,15 @@ static void gen_fp_load(DisasContext *ctx, uint32_t opc, int rd,
         if (!has_ext(ctx, RVD)) {
             goto do_illegal;
         }
-        tcg_gen_qemu_ld_i64(cpu_fpr[rd], t0, ctx->mem_idx, MO_TEQ);
+        tcg_gen_qemu_ld_i64(cpu_fpr[rd], masked_addr, ctx->mem_idx, MO_TEQ);
         break;
     do_illegal:
     default:
         gen_exception_illegal(ctx);
         break;
     }
-    tcg_temp_free(t0);
+    tcg_temp_free(masked_addr);
+    tcg_temp_free(effective_addr);
 
     mark_fs_dirty(ctx);
 }
@@ -527,29 +533,30 @@ static void gen_fp_load(DisasContext *ctx, uint32_t opc, int rd,
 static void gen_fp_store(DisasContext *ctx, uint32_t opc, int rs1,
         int rs2, target_long imm)
 {
-    TCGv t0;
+    TCGv effective_addr;
 
     if (ctx->mstatus_fs == 0) {
         gen_exception_illegal(ctx);
         return;
     }
 
-    t0 = tcg_temp_new();
-    gen_get_gpr(t0, rs1);
-    tcg_gen_addi_tl(t0, t0, imm);
+    effective_addr = tcg_temp_new();
+    gen_get_gpr(effective_addr, rs1);
+    tcg_gen_addi_tl(effective_addr, effective_addr, imm);
+    TCGv masked_addr = apply_pointer_masking(ctx, effective_addr);
 
     switch (opc) {
     case OPC_RISC_FSW:
         if (!has_ext(ctx, RVF)) {
             goto do_illegal;
         }
-        tcg_gen_qemu_st_i64(cpu_fpr[rs2], t0, ctx->mem_idx, MO_TEUL);
+        tcg_gen_qemu_st_i64(cpu_fpr[rs2], masked_addr, ctx->mem_idx, MO_TEUL);
         break;
     case OPC_RISC_FSD:
         if (!has_ext(ctx, RVD)) {
             goto do_illegal;
         }
-        tcg_gen_qemu_st_i64(cpu_fpr[rs2], t0, ctx->mem_idx, MO_TEQ);
+        tcg_gen_qemu_st_i64(cpu_fpr[rs2], masked_addr, ctx->mem_idx, MO_TEQ);
         break;
     do_illegal:
     default:
@@ -557,7 +564,8 @@ static void gen_fp_store(DisasContext *ctx, uint32_t opc, int rs1,
         break;
     }
 
-    tcg_temp_free(t0);
+    tcg_temp_free(masked_addr);
+    tcg_temp_free(effective_addr);
 }
 #endif
 
