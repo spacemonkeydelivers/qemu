@@ -63,6 +63,10 @@ typedef struct DisasContext {
     uint16_t vlen;
     uint16_t mlen;
     bool vl_eq_vlmax;
+    /* PointerMasking extension */
+    uint8_t pm_enabled;
+    target_ulong pm_mask;
+    target_ulong pm_base;
 } DisasContext;
 
 #ifdef TARGET_RISCV64
@@ -90,6 +94,41 @@ static inline bool has_ext(DisasContext *ctx, uint32_t ext)
     return ctx->misa & ext;
 }
 
+/* Generates address adjustment for PointerMasking */
+static void gen_pm_adjust_address(DisasContext *s,
+                                  TCGv_i64      dst,
+                                  TCGv_i64      src)
+{
+    if (s->pm_enabled == 0) {
+        /* Load unmodified address */
+        tcg_gen_mov_i64(dst, src);
+    } else {
+        // FIXME: need to support 32 bit
+        TCGv_i64 mask_neg = tcg_const_i64(~s->pm_mask);
+        TCGv_i64 base     = tcg_const_i64(s->pm_base);
+        /* calculate (addr & ~mask) */
+        TCGv res1 = tcg_temp_new();
+        tcg_gen_and_tl(res1, mask_neg, src);
+        /* calculate (1) | (base) */
+        TCGv res2 = tcg_temp_new();
+        tcg_gen_or_tl(res2, res1, base);
+        /* move result to dst */
+        tcg_gen_mov_i64(dst, res2);
+        /* free allocated temps */
+        tcg_temp_free(res1);
+        tcg_temp_free(res2);
+        tcg_temp_free_i64(mask_neg);
+        tcg_temp_free_i64(base);
+    }
+}
+
+static TCGv_i64 apply_pointer_masking(DisasContext *s, TCGv_i64 addr)
+{
+    // FIXME: potential memory leak, need to free tmp
+    TCGv_i64 clean = tcg_temp_new();
+    gen_pm_adjust_address(s, clean, addr);
+    return clean;
+}
 /*
  * RISC-V requires NaN-boxing of narrower width floating point values.
  * This applies when a 32-bit value is assigned to a 64-bit FP register.
@@ -812,6 +851,30 @@ static void riscv_tr_init_disas_context(DisasContextBase *dcbase, CPUState *cs)
     ctx->lmul = FIELD_EX32(tb_flags, TB_FLAGS, LMUL);
     ctx->mlen = 1 << (ctx->sew  + 3 - ctx->lmul);
     ctx->vl_eq_vlmax = FIELD_EX32(tb_flags, TB_FLAGS, VL_EQ_VLMAX);
+    switch (env->priv) {
+    case PRV_U:
+        ctx->pm_enabled = get_field(env->mmte, UMTE_U_PM_ENABLE);
+        ctx->pm_mask = env->upmmask;
+        ctx->pm_base = env->upmbase;
+        break;
+    case PRV_S:
+        ctx->pm_enabled = get_field(env->mmte, SMTE_S_PM_ENABLE);
+        ctx->pm_mask = env->spmmask;
+        ctx->pm_base = env->spmbase;
+        break;
+    case PRV_H:
+        ctx->pm_enabled = get_field(env->mmte, HMTE_H_PM_ENABLE);
+        ctx->pm_mask = env->hpmmask;
+        ctx->pm_base = env->hpmbase;
+        break;
+    case PRV_M:
+        ctx->pm_enabled = get_field(env->mmte, MMTE_M_PM_ENABLE);
+        ctx->pm_mask = env->mpmmask;
+        ctx->pm_base = env->mpmbase;
+        break;
+    default:
+        assert(0 && "Unreachable");
+    }
 }
 
 static void riscv_tr_tb_start(DisasContextBase *db, CPUState *cpu)
@@ -932,3 +995,4 @@ void riscv_translate_init(void)
     load_val = tcg_global_mem_new(cpu_env, offsetof(CPURISCVState, load_val),
                              "load_val");
 }
+
