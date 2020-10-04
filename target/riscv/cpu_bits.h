@@ -354,6 +354,26 @@
 #define CSR_MHPMCOUNTER30H  0xb9e
 #define CSR_MHPMCOUNTER31H  0xb9f
 
+/* Custom user register */
+#define CSR_UMTE            0x8c0
+#define CSR_UPMMASK         0x8c1
+#define CSR_UPMBASE         0x8c2
+
+/* Custom machine register */
+#define CSR_MMTE            0x7c0
+#define CSR_MPMMASK         0x7c1
+#define CSR_MPMBASE         0x7c2
+
+/* Custom supervisor register */
+#define CSR_SMTE            0x9c0
+#define CSR_SPMMASK         0x9c1
+#define CSR_SPMBASE         0x9c2
+
+/* Custom hypervisor register */
+#define CSR_HMTE            0x6c0
+#define CSR_HPMMASK         0x6c1
+#define CSR_HPMBASE         0x6c2
+
 /* Legacy Machine Protection and Translation (priv v1.9.1) */
 #define CSR_MBASE           0x380
 #define CSR_MBOUND          0x381
@@ -604,4 +624,56 @@
 #define MIE_UTIE                           (1 << IRQ_U_TIMER)
 #define MIE_SSIE                           (1 << IRQ_S_SOFT)
 #define MIE_USIE                           (1 << IRQ_U_SOFT)
+
+/* general mte CSR bits*/
+#define PM_ENABLE       0x00000001
+#define PM_CURRENT      0x00000002
+
+/* offsets for every pair of control bits per each priv level */
+#define U_OFFSET     0
+#define S_OFFSET     2
+#define H_OFFSET     4
+#define M_OFFSET     6
+
+#define U_PM_ENABLE  (PM_ENABLE  << U_OFFSET)
+#define U_PM_CURRENT (PM_CURRENT << U_OFFSET)
+#define S_PM_ENABLE  (PM_ENABLE  << S_OFFSET)
+#define S_PM_CURRENT (PM_CURRENT << S_OFFSET)
+#define H_PM_ENABLE  (PM_ENABLE  << H_OFFSET)
+#define H_PM_CURRENT (PM_CURRENT << H_OFFSET)
+#define M_PM_ENABLE  (PM_ENABLE  << M_OFFSET)
+#define M_PM_CURRENT (PM_CURRENT << M_OFFSET)
+
+/* mmte CSR bits */
+#define MMTE_U_PM_ENABLE    U_PM_ENABLE
+#define MMTE_U_PM_CURRENT   U_PM_CURRENT
+#define MMTE_S_PM_ENABLE    S_PM_ENABLE
+#define MMTE_S_PM_CURRENT   S_PM_CURRENT
+#define MMTE_H_PM_ENABLE    H_PM_ENABLE
+#define MMTE_H_PM_CURRENT   H_PM_CURRENT
+#define MMTE_M_PM_ENABLE    M_PM_ENABLE
+#define MMTE_M_PM_CURRENT   M_PM_CURRENT
+#define MMTE_MASK           (MMTE_U_PM_ENABLE | MMTE_U_PM_CURRENT | MMTE_S_PM_ENABLE | MMTE_S_PM_CURRENT | MMTE_H_PM_ENABLE | MMTE_H_PM_CURRENT | MMTE_M_PM_ENABLE | MMTE_M_PM_CURRENT)
+
+/* hmte CSR bits */
+#define HMTE_U_PM_ENABLE    U_PM_ENABLE
+#define HMTE_U_PM_CURRENT   U_PM_CURRENT
+#define HMTE_S_PM_ENABLE    S_PM_ENABLE
+#define HMTE_S_PM_CURRENT   S_PM_CURRENT
+#define HMTE_H_PM_ENABLE    H_PM_ENABLE
+#define HMTE_H_PM_CURRENT   H_PM_CURRENT
+#define HMTE_MASK           (HMTE_U_PM_ENABLE | HMTE_U_PM_CURRENT | HMTE_S_PM_ENABLE | HMTE_S_PM_CURRENT | HMTE_H_PM_ENABLE | HMTE_H_PM_CURRENT)
+
+/* smte CSR bits */
+#define SMTE_U_PM_ENABLE    U_PM_ENABLE
+#define SMTE_U_PM_CURRENT   U_PM_CURRENT
+#define SMTE_S_PM_ENABLE    S_PM_ENABLE
+#define SMTE_S_PM_CURRENT   S_PM_CURRENT
+#define SMTE_MASK           (SMTE_U_PM_ENABLE | SMTE_U_PM_CURRENT | SMTE_S_PM_ENABLE | SMTE_S_PM_CURRENT)
+
+/* umte CSR bits */
+#define UMTE_U_PM_ENABLE    U_PM_ENABLE
+#define UMTE_U_PM_CURRENT   U_PM_CURRENT
+#define UMTE_MASK           (UMTE_U_PM_ENABLE | MMTE_U_PM_CURRENT)
+
 #endif

@@ -1250,6 +1250,174 @@ static int write_pmpaddr(CPURISCVState *env, int csrno, target_ulong val)
     return 0;
 }
 
+/* Functions to access Pointer Masking feature registers */
+static int check_pm_current_disabled(CPURISCVState *env, int csrno)
+{
+    int csr_priv = get_field(csrno, CSR_MSTATUS);
+    int cur_bit_pos = (env->priv == PRV_U) ? U_PM_CURRENT :
+        (env->priv == PRV_S) ? S_PM_CURRENT :
+        (env->priv == PRV_H) ? H_PM_CURRENT :
+        (env->priv == PRV_M) ? M_PM_CURRENT : -1;
+    assert(cur_bit_pos != -1);
+    int pm_current = get_field(env->mmte, cur_bit_pos);
+    if ((env->priv == csr_priv) && !pm_current)
+        return 1;
+    else
+        return 0;
+}
+
+static int read_mmte(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mmte;
+    return 0;
+}
+
+static int write_mmte(CPURISCVState *env, int csrno, target_ulong val)
+{
+    target_ulong wpri_val = val & MMTE_MASK;
+    assert(val == wpri_val);
+    /* flush translation cache */
+    if (val != env->mmte) {
+        tb_flush(env_cpu(env));
+    }
+    env->mmte = val;
+    return 0;
+}
+
+static int read_smte(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mmte;
+    return 0;
+}
+
+static int write_smte(CPURISCVState *env, int csrno, target_ulong val)
+{
+    target_ulong wpri_val = val & SMTE_MASK;
+    assert(val == wpri_val);
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
+    target_ulong new_val = val | (env->mmte & ~SMTE_MASK);
+    write_mmte(env, csrno, new_val);
+    return 0;
+}
+
+static int read_umte(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mmte;
+    return 0;
+}
+
+static int write_umte(CPURISCVState *env, int csrno, target_ulong val)
+{
+    target_ulong wpri_val = val & UMTE_MASK;
+    assert(val == wpri_val);
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
+    target_ulong new_val = val | (env->mmte & ~UMTE_MASK);
+    write_mmte(env, csrno, new_val);
+    return 0;
+}
+
+static int read_mpmmask(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mpmmask;
+    return 0;
+}
+
+static int write_mpmmask(CPURISCVState *env, int csrno, target_ulong val)
+{
+    if (val != env->mpmmask) {
+        tb_flush(env_cpu(env));
+    }
+    env->mpmmask = val;
+    return 0;
+}
+
+static int read_spmmask(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->spmmask;
+    return 0;
+}
+
+static int write_spmmask(CPURISCVState *env, int csrno, target_ulong val)
+{
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
+    if (val != env->spmmask) {
+        tb_flush(env_cpu(env));
+    }
+    env->spmmask = val;
+    return 0;
+}
+
+static int read_upmmask(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->upmmask;
+    return 0;
+}
+
+static int write_upmmask(CPURISCVState *env, int csrno, target_ulong val)
+{
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
+    if (val != env->upmmask) {
+        tb_flush(env_cpu(env));
+    }
+    env->upmmask = val;
+    return 0;
+}
+
+static int read_mpmbase(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->mpmbase;
+    return 0;
+}
+
+static int write_mpmbase(CPURISCVState *env, int csrno, target_ulong val)
+{
+    /* flush translation cache */
+    if (val != env->mpmbase) {
+        tb_flush(env_cpu(env));
+    }
+    env->mpmbase = val;
+    return 0;
+}
+
+static int read_spmbase(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->spmbase;
+    return 0;
+}
+
+static int write_spmbase(CPURISCVState *env, int csrno, target_ulong val)
+{
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
+    /* flush translation cache */
+    if (val != env->spmbase) {
+        tb_flush(env_cpu(env));
+    }
+    env->spmbase = val;
+    return 0;
+}
+
+static int read_upmbase(CPURISCVState *env, int csrno, target_ulong *val)
+{
+    *val = env->upmbase;
+    return 0;
+}
+
+static int write_upmbase(CPURISCVState *env, int csrno, target_ulong val)
+{
+    if (check_pm_current_disabled(env, csrno))
+        return 0;
+    /* flush translation cache */
+    if (val != env->upmbase) {
+        tb_flush(env_cpu(env));
+    }
+    env->upmbase = val;
+    return 0;
+}
 #endif
 
 /*
@@ -1470,6 +1638,21 @@ static riscv_csr_operations csr_ops[CSR_TABLE_SIZE] = {
     /* Physical Memory Protection */
     [CSR_PMPCFG0  ... CSR_PMPCFG3]   = { pmp,   read_pmpcfg,  write_pmpcfg   },
     [CSR_PMPADDR0 ... CSR_PMPADDR15] = { pmp,   read_pmpaddr, write_pmpaddr  },
+
+    /* User Pointer Masking */
+    [CSR_UMTE] =                { any,  read_umte,        write_umte        },
+    [CSR_UPMMASK] =             { any,  read_upmmask,     write_upmmask     },
+    [CSR_UPMBASE] =             { any,  read_upmbase,     write_upmbase     },
+
+    /* Machine Pointer Masking */
+    [CSR_MMTE] =                { any,  read_mmte,        write_mmte        },
+    [CSR_MPMMASK] =             { any,  read_mpmmask,     write_mpmmask     },
+    [CSR_MPMBASE] =             { any,  read_mpmbase,     write_mpmbase     },
+
+    /* Supervisor Pointer Masking */
+    [CSR_SMTE] =                { smode, read_smte,        write_smte        },
+    [CSR_SPMMASK] =             { smode, read_spmmask,     write_spmmask     },
+    [CSR_SPMBASE] =             { smode, read_spmbase,     write_spmbase     },
 
     /* Performance Counters */
     [CSR_HPMCOUNTER3   ... CSR_HPMCOUNTER31] =    { ctr,  read_zero          },
