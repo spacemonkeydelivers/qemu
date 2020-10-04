@@ -27,14 +27,16 @@ static bool trans_flw(DisasContext *ctx, arg_flw *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    TCGv t0 = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1);
-    tcg_gen_addi_tl(t0, t0, a->imm);
+    TCGv effective_addr = tcg_temp_new();
+    gen_get_gpr(effective_addr, a->rs1);
+    tcg_gen_addi_tl(effective_addr, effective_addr, a->imm);
+    TCGv masked_addr = apply_pointer_masking(ctx, effective_addr);
 
-    tcg_gen_qemu_ld_i64(cpu_fpr[a->rd], t0, ctx->mem_idx, MO_TEUL);
+    tcg_gen_qemu_ld_i64(cpu_fpr[a->rd], masked_addr, ctx->mem_idx, MO_TEUL);
     gen_nanbox_s(cpu_fpr[a->rd], cpu_fpr[a->rd]);
 
-    tcg_temp_free(t0);
+    tcg_temp_free(masked_addr);
+    tcg_temp_free(effective_addr);
     mark_fs_dirty(ctx);
     return true;
 }
@@ -43,14 +45,16 @@ static bool trans_fsw(DisasContext *ctx, arg_fsw *a)
 {
     REQUIRE_FPU;
     REQUIRE_EXT(ctx, RVF);
-    TCGv t0 = tcg_temp_new();
-    gen_get_gpr(t0, a->rs1);
+    TCGv effective_addr = tcg_temp_new();
+    gen_get_gpr(effective_addr, a->rs1);
 
-    tcg_gen_addi_tl(t0, t0, a->imm);
+    tcg_gen_addi_tl(effective_addr, effective_addr, a->imm);
+    TCGv masked_addr = apply_pointer_masking(ctx, effective_addr);
 
-    tcg_gen_qemu_st_i64(cpu_fpr[a->rs2], t0, ctx->mem_idx, MO_TEUL);
+    tcg_gen_qemu_st_i64(cpu_fpr[a->rs2], masked_addr, ctx->mem_idx, MO_TEUL);
 
-    tcg_temp_free(t0);
+    tcg_temp_free(masked_addr);
+    tcg_temp_free(effective_addr);
     return true;
 }
 
