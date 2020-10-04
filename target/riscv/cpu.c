@@ -255,6 +255,15 @@ static void riscv_cpu_dump_state(CPUState *cs, FILE *f, int flags)
         qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "htval ", env->htval);
         qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "mtval2 ", env->mtval2);
     }
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "mmte    ", env->mmte);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "upmbase ", env->upmbase);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "spmbase ", env->spmbase);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "hpmbase ", env->hpmbase);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "mpmbase ", env->mpmbase);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "upmmask ", env->upmmask);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "hpmmask ", env->spmmask);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "spmmask ", env->hpmmask);
+    qemu_fprintf(f, " %s " TARGET_FMT_lx "\n", "mpmmask ", env->mpmmask);
 #endif
 
     for (i = 0; i < 32; i++) {
