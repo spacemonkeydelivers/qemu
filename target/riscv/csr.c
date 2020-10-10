@@ -1300,6 +1300,8 @@ static int write_mmte(CPURISCVState *env, int csrno, target_ulong val)
         tb_flush(env_cpu(env));
     }
     env->mmte = val;
+    env->mstatus |= MSTATUS_XS | MSTATUS_SD;
+    env->mmte |= PM_EXT_DIRTY;
     return 0;
 }
 
@@ -1381,6 +1383,8 @@ static int write_mpmmask(CPURISCVState *env, int csrno, target_ulong val)
         tb_flush(env_cpu(env));
     }
     env->mpmmask = val;
+    env->mstatus |= MSTATUS_XS | MSTATUS_SD;
+    env->mmte |= PM_EXT_DIRTY;
     return 0;
 }
 
@@ -1408,6 +1412,8 @@ static int write_spmmask(CPURISCVState *env, int csrno, target_ulong val)
         tb_flush(env_cpu(env));
     }
     env->spmmask = val;
+    env->mstatus |= MSTATUS_XS | MSTATUS_SD;
+    env->mmte |= PM_EXT_DIRTY;
     return 0;
 }
 
@@ -1435,6 +1441,8 @@ static int write_upmmask(CPURISCVState *env, int csrno, target_ulong val)
         tb_flush(env_cpu(env));
     }
     env->upmmask = val;
+    env->mstatus |= MSTATUS_XS | MSTATUS_SD;
+    env->mmte |= PM_EXT_DIRTY;
     return 0;
 }
 
@@ -1461,6 +1469,8 @@ static int write_mpmbase(CPURISCVState *env, int csrno, target_ulong val)
         tb_flush(env_cpu(env));
     }
     env->mpmbase = val;
+    env->mstatus |= MSTATUS_XS | MSTATUS_SD;
+    env->mmte |= PM_EXT_DIRTY;
     return 0;
 }
 
@@ -1489,6 +1499,8 @@ static int write_spmbase(CPURISCVState *env, int csrno, target_ulong val)
         tb_flush(env_cpu(env));
     }
     env->spmbase = val;
+    env->mstatus |= MSTATUS_XS | MSTATUS_SD;
+    env->mmte |= PM_EXT_DIRTY;
     return 0;
 }
 
@@ -1517,6 +1529,8 @@ static int write_upmbase(CPURISCVState *env, int csrno, target_ulong val)
         tb_flush(env_cpu(env));
     }
     env->upmbase = val;
+    env->mstatus |= MSTATUS_XS | MSTATUS_SD;
+    env->mmte |= PM_EXT_DIRTY;
     return 0;
 }
 #endif

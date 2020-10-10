@@ -623,12 +623,21 @@
 /* general mte CSR bits*/
 #define PM_ENABLE       0x00000001
 #define PM_CURRENT      0x00000002
+#define PM_XS_MASK      0x00000003
+
+/* PM XS bits values */
+#define PM_EXT_DISABLE  0x00000000
+#define PM_EXT_INITIAL  0x00000001
+#define PM_EXT_CLEAN    0x00000002
+#define PM_EXT_DIRTY    0x00000003
 
 /* offsets for every pair of control bits per each priv level */
-#define U_OFFSET     0
-#define S_OFFSET     2
-#define M_OFFSET     4
+#define XS_OFFSET    0
+#define U_OFFSET     2
+#define S_OFFSET     4
+#define M_OFFSET     6
 
+#define PM_XS_BITS   (PM_XS_MASK << XS_OFFSET)
 #define U_PM_ENABLE  (PM_ENABLE  << U_OFFSET)
 #define U_PM_CURRENT (PM_CURRENT << U_OFFSET)
 #define S_PM_ENABLE  (PM_ENABLE  << S_OFFSET)
@@ -636,6 +645,7 @@
 #define M_PM_ENABLE  (PM_ENABLE  << M_OFFSET)
 
 /* mmte CSR bits */
+#define MMTE_PM_XS_BITS     PM_XS_BITS
 #define MMTE_U_PM_ENABLE    U_PM_ENABLE
 #define MMTE_U_PM_CURRENT   U_PM_CURRENT
 #define MMTE_S_PM_ENABLE    S_PM_ENABLE
@@ -643,15 +653,17 @@
 #define MMTE_M_PM_ENABLE    M_PM_ENABLE
 #define MMTE_MASK           (MMTE_U_PM_ENABLE | MMTE_U_PM_CURRENT | \
                              MMTE_S_PM_ENABLE | MMTE_S_PM_CURRENT | \
-                             MMTE_M_PM_ENABLE)
+                             MMTE_M_PM_ENABLE | MMTE_PM_XS_BITS)
 
 /* smte CSR bits */
+#define SMTE_PM_XS_BITS     PM_XS_BITS
 #define SMTE_U_PM_ENABLE    U_PM_ENABLE
 #define SMTE_U_PM_CURRENT   U_PM_CURRENT
 #define SMTE_S_PM_ENABLE    S_PM_ENABLE
 #define SMTE_S_PM_CURRENT   S_PM_CURRENT
 #define SMTE_MASK           (SMTE_U_PM_ENABLE | SMTE_U_PM_CURRENT | \
-                             SMTE_S_PM_ENABLE | SMTE_S_PM_CURRENT)
+                             SMTE_S_PM_ENABLE | SMTE_S_PM_CURRENT | \
+                             SMTE_PM_XS_BITS)
 
 /* umte CSR bits */
 #define UMTE_U_PM_ENABLE    U_PM_ENABLE
