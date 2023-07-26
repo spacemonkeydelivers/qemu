@@ -137,6 +137,9 @@ static const struct isa_ext_data isa_edata_arr[] = {
     ISA_EXT_DATA_ENTRY(svinval, PRIV_VERSION_1_12_0, ext_svinval),
     ISA_EXT_DATA_ENTRY(svnapot, PRIV_VERSION_1_12_0, ext_svnapot),
     ISA_EXT_DATA_ENTRY(svpbmt, PRIV_VERSION_1_12_0, ext_svpbmt),
+    ISA_EXT_DATA_ENTRY(ssnjpm, PRIV_VERSION_1_12_0, ext_ssnjpm),
+    ISA_EXT_DATA_ENTRY(smnjpm, PRIV_VERSION_1_12_0, ext_smnjpm),
+    ISA_EXT_DATA_ENTRY(smmjpm, PRIV_VERSION_1_12_0, ext_smmjpm),
     ISA_EXT_DATA_ENTRY(xtheadba, PRIV_VERSION_1_11_0, ext_xtheadba),
     ISA_EXT_DATA_ENTRY(xtheadbb, PRIV_VERSION_1_11_0, ext_xtheadbb),
     ISA_EXT_DATA_ENTRY(xtheadbs, PRIV_VERSION_1_11_0, ext_xtheadbs),
@@ -1796,6 +1799,10 @@ static Property riscv_cpu_extensions[] = {
     DEFINE_PROP_UINT16("cboz_blocksize", RISCVCPU, cfg.cboz_blocksize, 64),
 
     DEFINE_PROP_BOOL("zmmul", RISCVCPU, cfg.ext_zmmul, false),
+    /* Zjpm v0.6.1 extensions */
+    DEFINE_PROP_BOOL("ssnjpm", RISCVCPU, cfg.ext_ssnjpm, false),
+    DEFINE_PROP_BOOL("smnjpm", RISCVCPU, cfg.ext_smnjpm, false),
+    DEFINE_PROP_BOOL("smmjpm", RISCVCPU, cfg.ext_smmjpm, false),
 
     DEFINE_PROP_BOOL("zca", RISCVCPU, cfg.ext_zca, false),
     DEFINE_PROP_BOOL("zcb", RISCVCPU, cfg.ext_zcb, false),

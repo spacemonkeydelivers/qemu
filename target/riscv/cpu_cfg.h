@@ -93,6 +93,9 @@ struct RISCVCPUConfig {
     bool ext_smaia;
     bool ext_ssaia;
     bool ext_sscofpmf;
+    bool ext_ssnjpm;
+    bool ext_smnjpm;
+    bool ext_smmjpm;
     bool rvv_ta_all_1s;
     bool rvv_ma_all_1s;
 
