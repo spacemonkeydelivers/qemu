@@ -1942,6 +1942,10 @@ static RISCVException write_menvcfg(CPURISCVState *env, int csrno,
                 (cfg->ext_sstc ? MENVCFG_STCE : 0) |
                 (cfg->ext_svadu ? MENVCFG_HADE : 0);
     }
+    if (riscv_cpu_cfg(env)->ext_smnjpm) {
+        /* for zjpm v0.6.1 MENVCFG_SPMENSELF should be always 0 */
+        mask |= MENVCFG_SPMEN;
+    }
     env->menvcfg = (env->menvcfg & ~mask) | (val & mask);
 
     return RISCV_EXCP_NONE;
@@ -1993,6 +1997,10 @@ static RISCVException write_senvcfg(CPURISCVState *env, int csrno,
         return ret;
     }
 
+    if (riscv_cpu_cfg(env)->ext_ssnjpm) {
+        /* for zjpm v0.6.1 SENVCFG_UPMENSELF should be always 0 */
+        mask |= SENVCFG_UPMEN;
+    }
     env->senvcfg = (env->senvcfg & ~mask) | (val & mask);
     return RISCV_EXCP_NONE;
 }

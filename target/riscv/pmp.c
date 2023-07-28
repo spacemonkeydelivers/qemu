@@ -580,6 +580,11 @@ void mseccfg_csr_write(CPURISCVState *env, target_ulong val)
         val &= ~(MSECCFG_MMWP | MSECCFG_MML | MSECCFG_RLB);
     }
 
+    if (riscv_cpu_cfg(env)->ext_smmjpm) {
+        /* for zjpm v0.6.1 MSECCFG_MPMENSELF should be always 0 */
+        val &= ~MSECCFG_MPMENSELF;
+    }
+
     env->mseccfg = val;
 }
 
