@@ -91,11 +91,9 @@ typedef enum {
 /* Enum holds maximum for N bits to be ignored depending on privilege level */
 typedef enum {
     PM_BARE_N_BITS = 16,
-    PM_SV32_N_BITS = 0,
     PM_SV39_N_BITS = 25,
     PM_SV48_N_BITS = 16,
     PM_SV57_N_BITS = 7,
-    PM_SV64_N_BITS = 0,
 } RISCVZjpmMaxNBits;
 
 #define MMU_USER_IDX 3
@@ -632,6 +630,10 @@ static inline uint32_t vext_get_vlmax(RISCVCPU *cpu, target_ulong vtype)
 
 void cpu_get_tb_cpu_state(CPURISCVState *env, vaddr *pc,
                           uint64_t *cs_base, uint32_t *pflags);
+
+void riscv_cpu_update_mask(CPURISCVState *env);
+RISCVZjpmMaxNBits riscv_cpu_pm_get_n_bits(int satp_mode, int priv_mode);
+bool riscv_cpu_pm_check_applicable(CPURISCVState *env, int priv_mode);
 
 RISCVException riscv_csrrw(CPURISCVState *env, int csrno,
                            target_ulong *ret_value,

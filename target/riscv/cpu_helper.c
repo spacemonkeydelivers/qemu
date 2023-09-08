@@ -144,6 +144,64 @@ void cpu_get_tb_cpu_state(CPURISCVState *env, vaddr *pc,
     *pflags = flags;
 }
 
+/*
+ * Curernt Zjpm v0.6.1 spec doesn't strictly specify the exact value of N bits.
+ * It allows it to be dependent on both translation mode and priv level.
+ * For now let's ignore priv mode and always return max available value.
+ */
+RISCVZjpmMaxNBits riscv_cpu_pm_get_n_bits(int satp_mode, int priv_mode)
+{
+    switch (satp_mode) {
+    case VM_1_10_MBARE:
+        return PM_BARE_N_BITS;
+    case VM_1_10_SV39:
+        return PM_SV39_N_BITS;
+    case VM_1_10_SV48:
+        return PM_SV48_N_BITS;
+    case VM_1_10_SV57:
+        return PM_SV57_N_BITS;
+    default:
+        g_assert_not_reached();
+    }
+}
+
+/* For current priv level check if pointer masking should be applied */
+bool riscv_cpu_pm_check_applicable(CPURISCVState *env, int priv_mode)
+{
+    /* checks if appropriate extension is present and enable bit is set */
+    switch (priv_mode) {
+    case PRV_M:
+        return riscv_cpu_cfg(env)->ext_smmjpm && env->mseccfg & MSECCFG_MPMEN;
+    case PRV_S:
+        return riscv_cpu_cfg(env)->ext_smnjpm && env->menvcfg & MENVCFG_SPMEN;
+    case PRV_U:
+        return riscv_cpu_cfg(env)->ext_ssnjpm && env->senvcfg & SENVCFG_UPMEN;
+    default:
+        g_assert_not_reached();
+    }
+    g_assert_not_reached();
+    return false;
+}
+
+void riscv_cpu_update_mask(CPURISCVState *env)
+{
+#ifndef CONFIG_USER_ONLY
+    int priv_mode = cpu_address_mode(env);
+    int satp_mode = 0;
+    if (riscv_cpu_mxl(env) == MXL_RV32) {
+        satp_mode = get_field(env->satp, SATP32_MODE);
+    } else {
+        satp_mode = get_field(env->satp, SATP64_MODE);
+    }
+    RISCVZjpmMaxNBits n_bits = riscv_cpu_pm_get_n_bits(satp_mode, priv_mode);
+    /* in bare mode address is not sign extended */
+    env->pm_signext = (satp_mode != VM_1_10_MBARE);
+    /* if pointer masking is applicable set env variable */
+    bool applicable = riscv_cpu_pm_check_applicable(env, priv_mode);
+    env->pm_n_bits = applicable ? n_bits : 0;
+#endif
+}
+
 #ifndef CONFIG_USER_ONLY
 
 /*
