@@ -88,6 +88,16 @@ typedef enum {
     EXT_STATUS_DIRTY,
 } RISCVExtStatus;
 
+/* Enum holds maximum for N bits to be ignored depending on privilege level */
+typedef enum {
+    PM_BARE_N_BITS = 16,
+    PM_SV32_N_BITS = 0,
+    PM_SV39_N_BITS = 25,
+    PM_SV48_N_BITS = 16,
+    PM_SV57_N_BITS = 7,
+    PM_SV64_N_BITS = 0,
+} RISCVZjpmMaxNBits;
+
 #define MMU_USER_IDX 3
 
 #define MAX_RISCV_PMPS (16)
