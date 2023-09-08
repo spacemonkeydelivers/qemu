@@ -169,6 +169,13 @@ static inline uint32_t vext_get_total_elems(CPURISCVState *env, uint32_t desc,
 
 static inline target_ulong adjust_addr(CPURISCVState *env, target_ulong addr)
 {
+    addr = addr << env->pm_n_bits;
+    /* sign/zero extend masked address by N-1 bit */
+    if (env->pm_signext) {
+        addr = (target_long)addr >> env->pm_n_bits;
+    } else {
+        addr = addr >> env->pm_n_bits;
+    }
     return addr;
 }
 
